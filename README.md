@@ -12,7 +12,7 @@ Website: https://micro-editor.github.io/
 ### Via Manual Install
 From the Unraid Web UI:
 
-**Plugins ? Install Plugin**, then paste:
+**Plugins → Install Plugin**, then paste:
 ```
 https://raw.githubusercontent.com/johnngone/micro-editor-unraid/main/plugin/micro-editor.plg
 ```
