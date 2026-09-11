@@ -1,0 +1,77 @@
+<?xml version="1.0" standalone="yes"?>
+<!DOCTYPE PLUGIN [
+  <!ENTITY name    "micro-editor">
+  <!ENTITY author  "johnngone">
+  <!ENTITY version "2026.09.10.234908">
+  <!ENTITY gitURL    "https://github.com/johnngone/micro-editor-unraid">
+  <!ENTITY pluginURL "https://raw.githubusercontent.com/johnngone/micro-editor-unraid/main/plugin/micro-editor.plg">
+  <!ENTITY archiveURL "https://github.com/micro-editor/micro/releases/download/v2.0.15/micro-2.0.15-linux64.tar.gz">
+  <!ENTITY sha256 "dfa1b6ae53e4e0b063b54224fd2b6b0a3c3159ea09d042a3a8f5cd001844d44c">
+]>
+<PLUGIN
+  name="&name;"
+  author="&author;"
+  version="&version;"
+  pluginURL="&pluginURL;"
+  support="https://github.com/johnngone/micro-editor-unraid/issues"
+  min="6.12.0"
+>
+  <CHANGES>
+  <![CDATA[
+  - Install Micro terminal editor (verified Linux binary) from official releases. Check release notes: https://github.com/micro-editor/micro/releases
+  ]]>
+  </CHANGES>
+
+  <FILE Name="/boot/config/plugins/&name;/micro-editor.png">
+    <URL>https://raw.githubusercontent.com/johnngone/micro-editor-unraid/main/plugin/micro-editor.png</URL>
+  </FILE>
+
+  <FILE Name="/usr/local/emhttp/plugins/&name;/micro-editor.png">
+    <LOCAL>/boot/config/plugins/&name;/micro-editor.png</LOCAL>
+  </FILE>
+
+  <FILE Name="/usr/local/emhttp/plugins/&name;/README.md">
+    <INLINE>
+**Micro Editor**
+
+Installs the `micro` terminal editor by Zachary Yedidia and contributors.
+    </INLINE>
+  </FILE>
+
+  <FILE Run="/bin/bash" Method="install">
+    <INLINE>
+#!/bin/bash
+set -euo pipefail
+
+PLUGIN="&name;"
+WORK="$(mktemp -d "/tmp/${PLUGIN}.XXXXXX")"
+ARCHIVE="${WORK}/micro.tar.gz"
+trap 'rm -rf -- "${WORK}"' EXIT
+
+echo "Downloading Micro..."
+wget -qO "${ARCHIVE}" "&archiveURL;"
+printf '%s  %s\n' "&sha256;" "${ARCHIVE}" | sha256sum -c -
+
+echo "Extracting Micro..."
+tar -xzf "${ARCHIVE}" -C "${WORK}" --strip-components=1
+
+echo "Installing micro binary..."
+install -m 0755 "${WORK}/micro" /usr/local/bin/micro
+install -m 0644 "${WORK}/LICENSE" "${WORK}/LICENSE-THIRD-PARTY" /usr/local/emhttp/plugins/&name;/
+
+echo "Done. Try: micro"
+    </INLINE>
+  </FILE>
+
+  <FILE Run="/bin/bash" Method="remove">
+    <INLINE>
+#!/bin/bash
+set -euxo pipefail
+
+rm -f /usr/local/bin/micro
+rm -rf /usr/local/emhttp/plugins/&name;
+
+echo "Removed Micro."
+    </INLINE>
+  </FILE>
+</PLUGIN>

@@ -1,0 +1,76 @@
+name: Bump Micro version in Unraid .plg
+
+on:
+  schedule:
+    - cron: "17 04 * * 2"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: micro-version-bump
+  cancel-in-progress: false
+
+jobs:
+  bump:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Keep weekly checks active
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api --method PUT "repos/$GITHUB_REPOSITORY/actions/workflows/bump.yml/enable"
+
+      - uses: actions/checkout@v5
+
+      - name: Check upstream release and update .plg
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          PLG="plugin/micro-editor.plg"
+          CUR_VER=$(grep -oP '<!ENTITY version "\K[^"]+' "$PLG")
+          CUR_URL=$(grep -oP '<!ENTITY archiveURL "\K[^"]+' "$PLG")
+          CUR_MICRO=$(sed -E 's#.*/download/v([^/]+)/.*#\1#' <<< "$CUR_URL")
+
+          # Get the latest stable Micro release.
+          JSON=$(curl -fsSL -H "Authorization: Bearer $GH_TOKEN" \
+            https://api.github.com/repos/micro-editor/micro/releases/latest)
+          jq -e '.draft == false and .prerelease == false' <<< "$JSON" >/dev/null
+          TAG=$(jq -r '.tag_name' <<< "$JSON")
+          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          NEW_VER=${TAG#v}
+
+          if [ "$(printf '%s\n' "$CUR_MICRO" "$NEW_VER" | sort -V | tail -n1)" = "$CUR_MICRO" ]; then
+            echo "No update needed. Micro $CUR_MICRO is already pinned."
+            exit 0
+          fi
+
+          ASSET="micro-$NEW_VER-linux64.tar.gz"
+          ARCHIVE_URL=$(jq -er --arg name "$ASSET" '.assets[] | select(.name == $name) | .browser_download_url' <<< "$JSON")
+          WORK=$(mktemp -d)
+          trap 'rm -rf -- "$WORK"' EXIT
+
+          # Verify the release checksum before updating the plugin.
+          curl -fsSL "$ARCHIVE_URL" -o "$WORK/$ASSET"
+          curl -fsSL "$ARCHIVE_URL.sha" -o "$WORK/checksum.sha"
+          SHA256=$(awk -v name="$ASSET" '$2 == name {print $1}' "$WORK/checksum.sha")
+          [[ "$SHA256" =~ ^[a-f0-9]{64}$ ]]
+          printf '%s  %s\n' "$SHA256" "$WORK/$ASSET" | sha256sum -c -
+
+          # Timestamp versions also handle multiple releases on the same day.
+          PLG_VER=$(date -u +"%Y.%m.%d.%H%M%S")
+          [[ "$PLG_VER" > "$CUR_VER" ]]
+          sed -i "s#<!ENTITY version \"[^\"]*\"#<!ENTITY version \"$PLG_VER\"#" "$PLG"
+          sed -i "s#<!ENTITY archiveURL \"[^\"]*\"#<!ENTITY archiveURL \"$ARCHIVE_URL\"#" "$PLG"
+          sed -i "s#<!ENTITY sha256 \"[^\"]*\"#<!ENTITY sha256 \"$SHA256\"#" "$PLG"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add "$PLG"
+          git commit -m "Bump Micro to $NEW_VER ($PLG_VER)"
+          git push origin HEAD:main
