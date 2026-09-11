@@ -28,7 +28,7 @@ micro /path/to/file.txt
 
 ## What This Plugin Does
 
-- Workflow checks for new stable Micro releases weekly and keeps itself active during inactivity
+- Workflow checks for new stable Micro releases weekly
 - Downloads and verifies the official Linux binary
 - Installs it to: `/usr/local/bin/micro`
 - Makes `micro` available from the Unraid Web Terminal, SSH, and local console
