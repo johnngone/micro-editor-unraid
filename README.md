@@ -33,6 +33,6 @@ micro /path/to/file.txt
 - Installs it to: `/usr/local/bin/micro`
 - Makes `micro` available from the Unraid Web Terminal, SSH, and local console
 
-Requires Unraid 6.12.0+ on x86_64 and internet access during installation and reboot restoration.
-Install available updates through Unraid's plugin manager.
-Micro settings use their standard location; this plugin does not add settings persistence.
+Notes:
+- Requires Unraid 6.12.0+ on x86_64 and internet access during installation and reboot restoration.
+- Micro settings use their standard location; this plugin does not add settings persistence.
