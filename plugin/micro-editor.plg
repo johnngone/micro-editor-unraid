@@ -38,6 +38,11 @@ Installs the `micro` terminal editor by Zachary Yedidia and contributors.
     </INLINE>
   </FILE>
 
+  <FILE Name="/boot/config/plugins/&name;/micro.tar.gz">
+    <URL>&archiveURL;</URL>
+    <SHA256>&sha256;</SHA256>
+  </FILE>
+
   <FILE Run="/bin/bash" Method="install">
     <INLINE>
 #!/bin/bash
@@ -45,11 +50,9 @@ set -euo pipefail
 
 PLUGIN="&name;"
 WORK="$(mktemp -d "/tmp/${PLUGIN}.XXXXXX")"
-ARCHIVE="${WORK}/micro.tar.gz"
+ARCHIVE="/boot/config/plugins/${PLUGIN}/micro.tar.gz"
 trap 'rm -rf -- "${WORK}"' EXIT
 
-echo "Downloading Micro..."
-wget -qO "${ARCHIVE}" "&archiveURL;"
 printf '%s  %s\n' "&sha256;" "${ARCHIVE}" | sha256sum -c -
 
 echo "Extracting Micro..."
@@ -70,6 +73,7 @@ set -euxo pipefail
 
 rm -f /usr/local/bin/micro
 rm -rf /usr/local/emhttp/plugins/&name;
+rm -f /boot/config/plugins/&name;/micro.tar.gz
 
 echo "Removed Micro."
     </INLINE>
